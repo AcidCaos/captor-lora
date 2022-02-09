@@ -26,21 +26,33 @@
 #define CAPTOR_LORA_H
 
 // Version Info
-#define VERSION "0.1"
+#define VERSION "0.2"
 
 // TTGO LoRa32 V2.1 Pins
-#define LED     25  // LED Output Pin
 #define SCK     5   // 
 #define MISO    19  // 
 #define MOSI    27  // 
-#define SS      18  // 
-#define RST     23  // Reset
+#define SS      18  // CS
 #define DIO0    26  // Interrupt Request (IRQ)
+#define RST     23  // Reset
+#define DIO1    33  // 
+#define BUSY    32  // 
 
-// OLED Display Pins
+// OLED Display Pins (First I2C Peripgeral: Wire)
 #define OLED_SDA  21  // Serial Data Line
 #define OLED_SCL  22  // Serial Clock Line
 #define OLED_RST  16  // Reset
+
+// I2C Pins (Second I2C Peripheral: Wire1)
+#define I2C_SDA   4
+#define I2C_SCL   12
+
+// Other Unused Pins
+#define LED       25  // LED Output Pin
+#define SD_MOSI   15  // SD Card Pins
+#define SD_MISO   2
+#define SD_SCLK   14
+#define SD_CS     13
 
 // OLED Display
 #define DISP_WIDTH    128
@@ -76,7 +88,7 @@
 /*
  *  BOARD MANAGER
  * 
- *  - Add the Espressif ESP32 package url https://dl.espressif.com/dl/package_esp32_index.json to the Additional Boards Manager URLs (File > Preferences)
+ *  - Add the Espressif ESP32 package url https://raw.githubusercontent.com/espressif/arduino-esp32/gh-pages/package_esp32_index.json to the Additional Boards Manager URLs (File > Preferences)
  *  - Install esp32 by Espressif Systems. You can find it here: http://boardsmanager#esp32
  *  
  *  LIBRARIES

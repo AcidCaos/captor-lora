@@ -26,10 +26,13 @@ void setup() {
 }
  
 void loop() {
-  delay(1000);
+  Serial.println("Waiting...");
+  delay(4000);
 }
 
 void receiveEvent(int howMany) {
+  Serial.print("Receiving... ");
   int first_byte = Wire1.read();
-  Serial.println("howMany = " + String(howMany) + "; packet = " + String(packet));
+  Serial.print("howMany = " + String(howMany) + "; byte[0] = ");
+  Serial.println(first_byte, HEX);
 }

@@ -1,7 +1,7 @@
 
 #define SLAVE_ADDR    0x08
 #define SDA           4
-#define SCL           12
+#define SCL           23 // not 12, it fails to boot.
 
 #include <Wire.h>
 
@@ -11,7 +11,6 @@ void setup() {
 
   // Init Serial
   Serial.begin(115200);
-  while (!Serial);
 
   Serial.println("I2C Dummy Slave");
 

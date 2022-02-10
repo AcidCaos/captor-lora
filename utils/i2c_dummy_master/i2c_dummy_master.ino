@@ -8,7 +8,6 @@ void setup() {
 
   // Init Serial
   Serial.begin(115200);
-  while (!Serial);
 
   Serial.println("I2C Dummy Master");
 

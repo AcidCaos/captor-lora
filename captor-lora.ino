@@ -60,7 +60,6 @@ void loop() {
 void setup_serial() {
   // Init Serial Monitor
   Serial.begin(115200);
-  while (!Serial);
   Serial.println();
 }
 

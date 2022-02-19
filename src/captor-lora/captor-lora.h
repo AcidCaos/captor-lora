@@ -45,7 +45,7 @@
 
 // I2C Pins (Second I2C Peripheral: Wire1)
 #define I2C_SDA   4
-#define I2C_SCL   12
+#define I2C_SCL   14 // not 12, it fails to boot. not 23, it is LoRa reset.
 
 // Other Unused Pins
 #define LED       25  // LED Output Pin
@@ -57,7 +57,7 @@
 // OLED Display
 #define DISP_WIDTH    128
 #define DISP_HEIGHT   64
-#define DISP_ADDRESS  0x3C
+#define DISP_ADDRESS  0x3C  // I2C address
 
 // LoRa Bands
 #define ASIA_BAND   433E6
@@ -77,6 +77,12 @@
 #define CAPTOR_GATEWAY  1
 
 #define CAPTOR_ROLE   CAPTOR_NODE
+
+// CAPTOR Info
+#define CAPTOR_PACK_REQUEST 4     // Number of packets requested to the Arduino
+#define CAPTOR_PACKET_BYTES 25    // SIze in bytes of each packet
+#define CAPTOR_ARDUINO_ADDR 0x08  // I2C Address of the Arduino
+#define CAPTOR_GATEWAY_ADDR 0x99  // I2C Address of the TTGO LoRa Gateway
 
 /*
  *  DEBUG
@@ -125,5 +131,22 @@ void setup_LoRa();
 void display_clear();
 void display_display();
 void display_header();
+
+/* LoRa */
+
+void LoRa_receive_handler(int);
+void LoRa_request_handler();
+void LoRa_send(String);
+void LoRa_send_dummy();
+
+/* I2C */
+
+void I2C_receive_handler(int);
+void I2C_request_handler();
+String I2C_request_from(int, int);
+
+/* CAPTOR */
+
+void CAPTOR_I2C_request_and_LoRa_send(int, int, int);
 
 #endif

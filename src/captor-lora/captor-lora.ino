@@ -31,13 +31,15 @@ void setup() {
   setup_reset_init_display();
   setup_SPI_bus();
   setup_LoRa();
+  setup_I2C();
   
 }
 
 void loop() {
 
   #if CAPTOR_ROLE == CAPTOR_NODE
-  send_empty();
+  //LoRa_send_dummy();
+  CAPTOR_I2C_request_and_LoRa_send(CAPTOR_ARDUINO_ADDR, CAPTOR_PACK_REQUEST, CAPTOR_PACKET_BYTES);
   #endif
 
   #if CAPTOR_ROLE == CAPTOR_GATEWAY
@@ -110,7 +112,33 @@ void setup_LoRa() {
   #if CAPTOR_ROLE == CAPTOR_GATEWAY
   LoRa.disableInvertIQ();               // normal mode
   LoRa.receive();                       // set receive mode
-  LoRa.onReceive(receive_handler);      // interrupt handler
+  LoRa.onReceive(LoRa_receive_handler); // receive interrupt handler
+  #endif
+}
+
+void setup_I2C() {
+  // Init I2C Second Peripheral
+  Serial.println("SETUP: Init I2C");
+
+  #if CAPTOR_ROLE == CAPTOR_NODE
+  if (!Wire1.begin(I2C_SDA, I2C_SCL)) { // Master Begin
+    Serial.println("ERROR: I2C could not be initialized");
+    while(1);
+  }
+  #endif
+  
+  #if CAPTOR_ROLE == CAPTOR_GATEWAY
+  if (!Wire1.begin(CAPTOR_GATEWAY_ADDR, I2C_SDA, I2C_SCL, 0)) { // Slave Begin
+    Serial.println("ERROR: I2C could not be initialized");
+    while(1);
+  }
+  // Set Slave Event handlers
+  Wire1.onReceive(I2C_receive_handler);
+  Wire1.onRequest(I2C_request_handler);
+  // Pre-write to the slave response buffer. (ESP32 only! More at: https://github.com/espressif/arduino-esp32/blob/master/docs/source/api/i2c.rst)
+  char message[64];
+  sprintf(message, 64, "%u Packets.", req++);
+  Wire1.slaveWrite((const uint8_t) message, strlen(message));
   #endif
 }
 
@@ -152,32 +180,94 @@ void display_body() {
 }
 
 /*
- * GATEWAY
+ * GATEWAY LoRa
  */
 
-void receive_handler (int packet_size) {
+void LoRa_receive_handler (int packet_size) {
+  Serial.print("LoRa_receive_handler");
   String message = "";
   while (LoRa.available()) {
     message += (char)LoRa.read();
   }
-  Serial.println("RECV: " + message);
+  Serial.println(" * RECV: " + message);
   last_message_recv = message;
 }
 
-/*
- * NODE
- */
-
-void LoRa_send(String message) {
-  LoRa.beginPacket();
-  LoRa.print(message);
-  LoRa.endPacket(); // endPacket(true) => async (non-blocking mode)
-  Serial.println("SENT: " + message);
+void LoRa_request_handler () {
   
 }
 
-void send_empty() {
+/*
+ * NODE LoRa
+ */
+
+void LoRa_send(String message) {
+  Serial.println("LoRa_send");
+  LoRa.beginPacket();
+  LoRa.print(message);
+  LoRa.endPacket(); // endPacket(true) => async (non-blocking mode)
+  Serial.println(" * SENT: " + message);
+  
+}
+
+void LoRa_send_dummy() {
   String data = String(count_send_num);
   count_send_num++;
   LoRa_send(data);
+}
+
+/*
+ * GATEWAY I2C
+ */
+
+void I2C_receive_handler(int howMany) {
+  Serial.print("I2C_receive_handler");
+  int first_byte = Wire1.read();
+  Serial.print(" * RECV: howMany = " + String(howMany) + "; byte[0] = ");
+  Serial.println(first_byte, HEX);
+}
+
+uint32_t req = 0;
+void I2C_request_handler() {
+  Serial.print("I2C_request_handler");
+  Wire1.print(req);
+  Wire1.print(" Packets.");
+  Serial.print(" * SENT: " + String(req) + " Packets.");
+  req++;
+}
+
+/*
+ * NODE I2C
+ */
+
+String I2C_request_from(int slave, int bytes) {
+  Serial.println("I2C_request_from");
+  int avail = Wire1.requestFrom(slave, bytes);
+  if (avail > 0) {
+    Serial.println("Available data. " + String(avail) + " bytes.");
+    char buffer[avail];
+    Wire1.readBytes(buffer, avail);
+    buffer[avail] = 0; // End of string
+    String convert(buffer);
+    Serial.println("Request response: " + convert);
+    return convert;
+  }
+  return String("");
+}
+
+/*
+ * CAPTOR
+ */
+
+void CAPTOR_I2C_request_and_LoRa_send(int slave, int num_packets, int bytes) {
+  for (int i = 0; i < num_packets; i++){
+    
+    String p_i = I2C_request_from(slave, bytes);
+    //String p_i = "shit " + String(i);
+
+    if (p_i != "") {
+      //LoRa_send_dummy();
+      LoRa_send(String(p_i));
+    }
+  }
 }

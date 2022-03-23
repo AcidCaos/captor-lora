@@ -27,6 +27,7 @@ void loop() {
       Wire.beginTransmission(address);
       error = Wire.endTransmission();
       if (error == 0) { // Found Slave
+        devices++;
         if (address < 16) Serial.print("0");
         Serial.print(address, HEX);
         continue;

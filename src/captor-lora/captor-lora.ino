@@ -38,7 +38,6 @@ void setup() {
 void loop() {
 
   #if CAPTOR_ROLE == CAPTOR_NODE
-  //LoRa_send_dummy();
   CAPTOR_I2C_request_and_LoRa_send(CAPTOR_ARDUINO_ADDR, CAPTOR_PACK_REQUEST, CAPTOR_PACKET_BYTES);
   #endif
 
@@ -120,25 +119,11 @@ void setup_I2C() {
   // Init I2C Second Peripheral
   Serial.println("SETUP: Init I2C");
 
-  #if CAPTOR_ROLE == CAPTOR_NODE
+  #if CAPTOR_ROLE == CAPTOR_NODE || CAPTOR_ROLE == CAPTOR_GATEWAY
   if (!Wire1.begin(I2C_SDA, I2C_SCL)) { // Master Begin
     Serial.println("ERROR: I2C could not be initialized");
     while(1);
   }
-  #endif
-  
-  #if CAPTOR_ROLE == CAPTOR_GATEWAY
-  if (!Wire1.begin(CAPTOR_GATEWAY_ADDR, I2C_SDA, I2C_SCL, 0)) { // Slave Begin
-    Serial.println("ERROR: I2C could not be initialized");
-    while(1);
-  }
-  // Set Slave Event handlers
-  Wire1.onReceive(I2C_receive_handler);
-  Wire1.onRequest(I2C_request_handler);
-  // Pre-write to the slave response buffer. (ESP32 only! More at: https://github.com/espressif/arduino-esp32/blob/master/docs/source/api/i2c.rst)
-  char message[64];
-  sprintf(message, 64, "%u Packets.", req++);
-  Wire1.slaveWrite((const uint8_t) message, strlen(message));
   #endif
 }
 
@@ -191,10 +176,7 @@ void LoRa_receive_handler (int packet_size) {
   }
   Serial.println(" * RECV: " + message);
   last_message_recv = message;
-}
-
-void LoRa_request_handler () {
-  
+  CAPTOR_I2C_send_to_RPi(message);
 }
 
 /*
@@ -207,7 +189,7 @@ void LoRa_send(String message) {
   LoRa.print(message);
   LoRa.endPacket(); // endPacket(true) => async (non-blocking mode)
   Serial.println(" * SENT: " + message);
-  
+  count_send_num++;
 }
 
 void LoRa_send_dummy() {
@@ -220,7 +202,7 @@ void LoRa_send_dummy() {
  * GATEWAY I2C
  */
 
-void I2C_receive_handler(int howMany) {
+void I2C_send_to_RPi(int howMany) {
   Serial.print("I2C_receive_handler");
   int first_byte = Wire1.read();
   Serial.print(" * RECV: howMany = " + String(howMany) + "; byte[0] = ");
@@ -256,7 +238,7 @@ String I2C_request_from(int slave, int bytes) {
 }
 
 /*
- * CAPTOR
+ * CAPTOR NODEs
  */
 
 void CAPTOR_I2C_request_and_LoRa_send(int slave, int num_packets, int bytes) {
@@ -270,4 +252,10 @@ void CAPTOR_I2C_request_and_LoRa_send(int slave, int num_packets, int bytes) {
       LoRa_send(String(p_i));
     }
   }
+}
+
+void CAPTOR_I2C_send_to_RPi(String packet) {
+  Wire1.beginTransmission(CAPTOR_RASPBERRY_ADDR);
+  Wire1.write(packet);
+  Wire1.endTransmission();
 }

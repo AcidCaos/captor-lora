@@ -26,7 +26,7 @@
 #define CAPTOR_LORA_H
 
 // Version Info
-#define VERSION "0.2"
+#define VERSION "0.3"
 
 // TTGO LoRa32 V2.1 Pins
 #define SCK     5   // 
@@ -79,10 +79,10 @@
 #define CAPTOR_ROLE   CAPTOR_NODE
 
 // CAPTOR Info
-#define CAPTOR_PACK_REQUEST 4     // Number of packets requested to the Arduino
-#define CAPTOR_PACKET_BYTES 25    // SIze in bytes of each packet
-#define CAPTOR_ARDUINO_ADDR 0x08  // I2C Address of the Arduino
-#define CAPTOR_GATEWAY_ADDR 0x99  // I2C Address of the TTGO LoRa Gateway
+#define CAPTOR_PACK_REQUEST 4       // Number of packets requested to the Arduino
+#define CAPTOR_PACKET_BYTES 25      // Size in bytes of each packet
+#define CAPTOR_ARDUINO_ADDR 0x08    // I2C Address of the Arduino
+#define CAPTOR_RASPBERRY_ADDR 0x99  // I2C Address of the Raspberry
 
 /*
  *  DEBUG
@@ -95,14 +95,16 @@
  *  BOARD MANAGER
  * 
  *  - Add the Espressif ESP32 package url https://raw.githubusercontent.com/espressif/arduino-esp32/gh-pages/package_esp32_index.json to the Additional Boards Manager URLs (File > Preferences)
- *  - Install esp32 by Espressif Systems. You can find it here: http://boardsmanager#esp32
+ *  - Install esp32 by Espressif Systems. Find it on Boards Manager: http://boardsmanager#esp32
  *  
  *  LIBRARIES
  *  
  *  - sandeepmistry's LoRa (version 0.8.0): https://www.arduino.cc/reference/en/libraries/lora/ 
- *     (on GitHub: https://github.com/sandeepmistry/arduino-LoRa)
+ *     Find it on Library Manager: http://librarymanager#LoRa-Arduino-sending-data-radios
+ *     Or on GitHub: https://github.com/sandeepmistry/arduino-LoRa
  *  - ThingPulse's OLED SSD1306 (version 4.2.1): https://www.arduino.cc/reference/en/libraries/esp8266-and-esp32-oled-driver-for-ssd1306-displays/ 
- *     (on GitHub: https://github.com/ThingPulse/esp8266-oled-ssd1306)
+ *     Find it on Library Manager: http://librarymanager#I2C-display-driver-SSD1306-OLED-connected-ESP8266
+ *     Or on GitHub: https://github.com/ThingPulse/esp8266-oled-ssd1306
  */
 
 // LoRa Libraries

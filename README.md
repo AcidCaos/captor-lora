@@ -5,6 +5,7 @@ Integrating LoRa to CAPTOR nodes
 
 - `TTGO LoRa32 V2.1.6` (a.k.a `TTGO T3_V1.6`, `TTGO LoRa32 V2.1 release 1.6` or `TTGO LoRa32 V2.1-1.6`), revision 1.6.1 also compatible.
 - `Arduino Nano V3.0` (ATmega328P)
+- `Raspberry Pi 3 Model B V1.2`
 
 ## Arduino IDE Setup
 

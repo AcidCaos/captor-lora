@@ -76,7 +76,7 @@
 #define CAPTOR_NODE     0
 #define CAPTOR_GATEWAY  1
 
-#define CAPTOR_ROLE   CAPTOR_NODE
+#define CAPTOR_ROLE   CAPTOR_GATEWAY
 
 // CAPTOR Info
 #define CAPTOR_PACK_REQUEST 4       // Number of packets requested to the Arduino
@@ -119,7 +119,6 @@
 SSD1306Wire display(DISP_ADDRESS, OLED_SDA, OLED_SCL);
 #endif
 
-
 /* SETUP */
  
 void setup_serial();
@@ -150,5 +149,6 @@ String I2C_request_from(int, int);
 /* CAPTOR */
 
 void CAPTOR_I2C_request_and_LoRa_send(int, int, int);
+void CAPTOR_I2C_send_to_RPi(String packet);
 
 #endif

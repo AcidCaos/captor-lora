@@ -78,9 +78,12 @@
 
 #define CAPTOR_ROLE   CAPTOR_GATEWAY
 
-// CAPTOR Info
+// CAPTOR PACKET CONFIG
 #define CAPTOR_PACK_REQUEST 4       // Number of packets requested to the Arduino
 #define CAPTOR_PACKET_BYTES 25      // Size in bytes of each packet
+#define CAPTOR_PACKET_BUFFER_N 8    // Size in number of packets of the LoRa receive packet buffer
+
+// CAPTOR I2C ADDRESSES
 #define CAPTOR_ARDUINO_ADDR 0x08    // I2C Address of the Arduino
 #define CAPTOR_RASPBERRY_ADDR 0x99  // I2C Address of the Raspberry
 
@@ -138,17 +141,18 @@ void display_header();
 void LoRa_receive_handler(int);
 void LoRa_request_handler();
 void LoRa_send(String);
-void LoRa_send_dummy();
+//void LoRa_send_dummy();
 
 /* I2C */
 
-void I2C_receive_handler(int);
-void I2C_request_handler();
 String I2C_request_from(int, int);
+void I2C_send_to(int, String);
+//void I2C_receive_handler(int);
+//void I2C_request_handler();
 
 /* CAPTOR */
 
 void CAPTOR_I2C_request_and_LoRa_send(int, int, int);
-void CAPTOR_I2C_send_to_RPi(String packet);
+void CAPTOR_check_recv_LoRa_and_I2C_send_to_RPi(int);
 
 #endif

@@ -44,12 +44,7 @@ void loop() {
   #endif
 
   #if CAPTOR_ROLE == CAPTOR_GATEWAY
-  //CAPTOR_I2C_send_to_RPi("Dummy I2C payload to RPi.");
-  //if (LoRa_received_flag) {
-  //  LoRa_read_received();
-  //}
-  LoRa_read_received();
-  
+  CAPTOR_check_recv_LoRa_and_I2C_send_to_RPi(CAPTOR_RASPBERRY_ADDR);
   #endif
 
   #if DISPLAY_INFO
@@ -59,7 +54,7 @@ void loop() {
   display_display();
   #endif
 
-  delay(1500);
+  delay(500);
 }
 
 /*
@@ -178,8 +173,8 @@ void display_body() {
  */
 
 struct {
-  char packets[8][64];
-  int used[8];
+  char packets[CAPTOR_PACKET_BUFFER_N][CAPTOR_PACKET_BYTES + 1];
+  int used[CAPTOR_PACKET_BUFFER_N];
   int hint_empty;
   int hint_full;
 } LoRa_buffer;
@@ -187,7 +182,7 @@ struct {
 void push (String message) {
   if (LoRa_buffer.hint_full) return;
   int i = 0;
-  for (i = 0; i < 8; ++i) {
+  for (i = 0; i < CAPTOR_PACKET_BUFFER_N; ++i) {
     if (not LoRa_buffer.used[i]) {
       LoRa_buffer.used[i] = 1;
       strcpy(LoRa_buffer.packets[i], (char*) message.c_str());
@@ -202,7 +197,7 @@ void push (String message) {
 String pop () {
   if (LoRa_buffer.hint_empty) return String("");
   int i = 0;
-  for (i = 0; i < 8; ++i) {
+  for (i = 0; i < CAPTOR_PACKET_BUFFER_N; ++i) {
     if (LoRa_buffer.used[i]) {
       LoRa_buffer.used[i] = 0;
       LoRa_buffer.hint_full = 0;
@@ -225,65 +220,27 @@ void LoRa_receive_handler (int packet_size) {
   while (LoRa.available()) {
     message += (char)LoRa.read();
   }
+  Serial.println(" * RECV: " + message);
   
-  // It's not a good idea to send the message to the Raspberry Pi, since
+  // It's not a good idea to send **now** the message to the Raspberry Pi, since
   // we are inside an interrupt handler, and we should not use I2C send,
   // Otherwise we can get an error and the board is restarted:
   // "Guru Meditation Error: Core  1 panic'ed (Interrupt wdt timeout on CPU1)", 
-  // Which happens because 'LoRa_receive_handler' is handled while
-  // 'CAPTOR_I2C_send_to_RPi' is being executed.
+  //
   // The interrupt watchdog makes sure the FreeRTOS task switching interrupt 
   // isn't blocked for a long time. This is bad because no other tasks
   // can get any CPU runtime. A blocked task switching interrupt can happen because 
   // a program runs into an infinite loop with interrupts disabled or hangs in an 
   // interrupt.
+  //
   // Timeout threshold can be modified. <https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-reference/kconfig.html#config-esp-int-wdt-timeout-ms>
   // Disable this <https://stackoverflow.com/questions/51750377/how-to-disable-interrupt-watchdog-in-esp32-or-increase-isr-time-limit>
   //
-  // So, we save it into a buffer that will eventually be read and sent safely
+  // So, we save it into a very simple buffer that will eventually be read and sent safely
   // to the Raspberry.
 
   push (message);
-  
-  //Serial.println(" * RECV: " + message);
-  //last_message_recv = message;
-  //CAPTOR_I2C_send_to_RPi(message);
-  //interrupts();
-}
 
-void LoRa_read_received () {
-
-  //LoRa_received_flag = false;
-  //return;
-
-  String message = pop();
-  while (message != "") {
-    Serial.println(" * RECV: " + message);
-    last_message_recv = message;
-
-    // To avoid a long loop, we let the RT-OS do its housekeeping and then it
-    // returns here. Otherwise, we hay have problems with the Interrupt Watchdog
-    
-    yield();
-    
-    CAPTOR_I2C_send_to_RPi(message);
-    message = pop();
-  }
-  
-  //noInterrupts();
-  //Serial.println(" * parsePacket: " + String(LoRa.parsePacket()));
-  /*String message = "";
-  while (LoRa.available()) {
-    char c = (char)LoRa.read();
-    if (c == 0) break;
-    message += c;
-  }
-  //Serial.println(" * parsePacket after: " + String(LoRa.parsePacket()));
-  Serial.println(" * RECV: " + message);
-  last_message_recv = message;
-  // LoRa_received_flag = false;
-  //interrupts();
-  CAPTOR_I2C_send_to_RPi(message);*/
 }
 
 /*
@@ -311,14 +268,15 @@ void LoRa_send_dummy() {
  * GATEWAY I2C
  */
 
-/*
-void I2C_send_to_RPi(int howMany) {
+void I2C_send_to(int address, String packet) {
+  // The TTGO LoRa Gateway forwards a packet (through I2C) to address.
   Serial.println("I2C_send_to_RPi");
-  int first_byte = Wire1.read();
-  Serial.print(" * RECV: howMany = " + String(howMany) + "; byte[0] = ");
-  Serial.println(first_byte, HEX);
+  Wire1.beginTransmission(address);
+  Wire1.write((char*) packet.c_str());
+  Wire1.endTransmission();
 }
 
+/*
 uint32_t req = 0;
 void I2C_request_handler() {
   Serial.println("I2C_request_handler");
@@ -368,23 +326,24 @@ void CAPTOR_I2C_request_and_LoRa_send(int slave, int num_packets, int bytes) {
  * GATEWAY CAPTOR
  */
 
-void CAPTOR_I2C_send_to_RPi(String packet) {
-  //noInterrupts();
-  // The TTGO LoRa Gateway forwards a packet (through I2C) to the Raspberry.
-  Serial.println("CAPTOR_I2C_send_to_RPi");
-  //Serial.println("A");
-  Wire1.beginTransmission(CAPTOR_RASPBERRY_ADDR);
-  // convert String to char*
-  //Serial.println("B");
-  int p_len = packet.length() + 1; // end of string
-  char buffer[p_len];
-  //Serial.println("C");
-  packet.toCharArray(buffer, p_len);
-  //Serial.println("D");
-  Wire1.write(buffer);
-  //Serial.println("E");
-  // Wire1.write((char*) packet.c_str());
-  Wire1.endTransmission();
-  //Serial.println("F");
-  //interrupts();
+void CAPTOR_check_recv_LoRa_and_I2C_send_to_RPi (int rpi_address) {
+  Serial.println("CAPTOR_check_recv_LoRa_and_I2C_send_to_RPi");
+  String message = pop();
+  while (message != "") {
+    Serial.println(" * Forward packet to RPi: " + message);
+    last_message_recv = message;
+
+    // To avoid a long loop, we let the RT-OS do its housekeeping and then it
+    // returns here. Otherwise, we hay have problems with the Interrupt Watchdog
+    // <https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-reference/system/wdts.html#interrupt-watchdog>
+    
+    yield();
+    
+    // The TTGO LoRa Gateway forwards a packet (through I2C) to the Raspberry.
+    I2C_send_to(rpi_address, message);
+
+    yield();
+    
+    message = pop();
+  }
 }

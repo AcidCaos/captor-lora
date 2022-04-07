@@ -169,6 +169,8 @@ void display_body() {
  */
 
 void LoRa_receive_handler (int packet_size) {
+  // TTGO LoRa gateway receives a Lora packet from a TTGO LoRa node
+  // and forwards the packet (through I2C) to the Raspberry.
   Serial.print("LoRa_receive_handler");
   String message = "";
   while (LoRa.available()) {
@@ -226,35 +228,38 @@ String I2C_request_from(int slave, int bytes) {
   Serial.println("I2C_request_from");
   int avail = Wire1.requestFrom(slave, bytes);
   if (avail > 0) {
-    Serial.println("Available data. " + String(avail) + " bytes.");
+    Serial.println(" * Available data. " + String(avail) + " bytes.");
     char buffer[avail];
     Wire1.readBytes(buffer, avail);
     buffer[avail] = 0; // End of string
     String convert(buffer);
-    Serial.println("Request response: " + convert);
+    Serial.println(" * Request response: " + convert);
     return convert;
   }
   return String("");
 }
 
 /*
- * CAPTOR NODEs
+ * NODE CAPTOR
  */
 
 void CAPTOR_I2C_request_and_LoRa_send(int slave, int num_packets, int bytes) {
+  // A TTGO LoRa node reads data (through I2C) from the Arduino (slave with sensors),
+  // and sends it to the TTGO LoRa Gateway.
   for (int i = 0; i < num_packets; i++){
     
     String p_i = I2C_request_from(slave, bytes);
-    //String p_i = "shit " + String(i);
 
-    if (p_i != "") {
-      //LoRa_send_dummy();
-      LoRa_send(String(p_i));
-    }
+    if (p_i != "") LoRa_send(String(p_i));
   }
 }
 
+/*
+ * GATEWAY CAPTOR
+ */
+
 void CAPTOR_I2C_send_to_RPi(String packet) {
+  // The TTGO LoRa Gateway forwards a packet (through I2C) to the Raspberry.
   Wire1.beginTransmission(CAPTOR_RASPBERRY_ADDR);
   Wire1.write(packet);
   Wire1.endTransmission();

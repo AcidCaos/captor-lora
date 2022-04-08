@@ -25,14 +25,10 @@ void loop() {
   delay(2000);
 }
 
-void receiveEvent() {
+void receiveEvent(int packet_size) {
   String message = "";
-  while(1 < Wire.available()) {
-    char c = Wire.read();
-    message += c;
+  for (int i = 0; i < packet_size; i++) {
+    message += (char)Wire.read();
   }
-  int x = Wire.read();    // receive byte as integer
-  
-  Serial.print(" * RECV: " + message);
-  Serial.println("; X=" + x);
+  Serial.println(" * RECV: " + message + " (" + message.length() + " bytes)");
 }

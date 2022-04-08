@@ -172,7 +172,7 @@ void display_body() {
  */
 
 struct {
-  char packets[CAPTOR_PACKET_BYTES + 1][CAPTOR_PACKET_BUFFER_N];
+  char packets[CAPTOR_PACKET_BUFFER_N][CAPTOR_PACKET_BYTES + 1];
   int used[CAPTOR_PACKET_BUFFER_N];
   int hint_empty;
   int hint_full;
@@ -257,7 +257,7 @@ void LoRa_send_dummy() {
 
 void I2C_send_to(int address, String packet) {
   // The TTGO LoRa Gateway forwards a packet (through I2C) to address.
-  Serial.println("I2C_send_to_RPi");
+  Serial.println("I2C_send_to_RPi" + packet + " (" + packet.length() + " bytes)");
   Wire1.beginTransmission(address);
   Wire1.write((char*) packet.c_str());
   Wire1.endTransmission();
@@ -317,21 +317,16 @@ void CAPTOR_check_recv_LoRa_and_I2C_send_to_RPi (int rpi_address) {
   Serial.println("CAPTOR_check_recv_LoRa_and_I2C_send_to_RPi");
   String message = pop();
   while (message != "") {
-    Serial.println(" * Forward packet to RPi: " + message);
+    Serial.println(" * Forward packet to RPi: " + message  + " (" + message.length() + " bytes)");
     last_message_recv = message;
 
     // To avoid a long loop, we let the RT-OS do its housekeeping and then it
     // returns here. Otherwise, we hay have problems with the Interrupt Watchdog
     // <https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-reference/system/wdts.html#interrupt-watchdog>
-    
-    //yield();
+    yield();
 
-    //noInterrupts();
     // The TTGO LoRa Gateway forwards a packet (through I2C) to the Raspberry.
     I2C_send_to(rpi_address, message);
-    //interrupts();
-    
-    //yield();
     
     message = pop();
   }

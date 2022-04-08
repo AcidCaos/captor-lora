@@ -27,7 +27,6 @@ void loop() {
 
 void receiveEvent() {
   String message = "";
-  Serial.println(" * RECV: " + message);
   while(1 < Wire.available()) {
     char c = Wire.read();
     message += c;

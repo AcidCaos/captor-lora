@@ -54,7 +54,7 @@ void loop() {
   display_display();
   #endif
 
-  delay(500);
+  delay(100);
 }
 
 /*
@@ -98,7 +98,6 @@ void setup_SPI_bus() {
 void setup_LoRa() {
   // Init LoRa
   Serial.println("SETUP: Init LoRa");
-  // LoRa_received_flag = false;
   LoRa.setPins(SS, RST, DIO0);
   if (!LoRa.begin(BAND)) {
     Serial.println("ERROR: LoRa could not be initialized");
@@ -173,7 +172,7 @@ void display_body() {
  */
 
 struct {
-  char packets[CAPTOR_PACKET_BUFFER_N][CAPTOR_PACKET_BYTES + 1];
+  char packets[CAPTOR_PACKET_BYTES + 1][CAPTOR_PACKET_BUFFER_N];
   int used[CAPTOR_PACKET_BUFFER_N];
   int hint_empty;
   int hint_full;
@@ -210,34 +209,22 @@ String pop () {
 }
 
 void LoRa_receive_handler (int packet_size) {
-  
   // TTGO LoRa gateway receives a Lora packet from a TTGO LoRa node
-  // and forwards the packet (through I2C) to the Raspberry.
   
-  Serial.println("LoRa_receive_handler");
-  //LoRa_received_flag = true;
+  // It is not a good idea to use Serial inside an interrupt handler.
+  //////// Serial.println("LoRa_receive_handler");
+  
   String message = "";
-  while (LoRa.available()) {
+  
+  for (int i = 0; i < packet_size; i++) {
     message += (char)LoRa.read();
   }
-  Serial.println(" * RECV: " + message);
   
-  // It's not a good idea to send **now** the message to the Raspberry Pi, since
-  // we are inside an interrupt handler, and we should not use I2C send,
-  // Otherwise we can get an error and the board is restarted:
-  // "Guru Meditation Error: Core  1 panic'ed (Interrupt wdt timeout on CPU1)", 
-  //
-  // The interrupt watchdog makes sure the FreeRTOS task switching interrupt 
-  // isn't blocked for a long time. This is bad because no other tasks
-  // can get any CPU runtime. A blocked task switching interrupt can happen because 
-  // a program runs into an infinite loop with interrupts disabled or hangs in an 
-  // interrupt.
-  //
-  // Timeout threshold can be modified. <https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-reference/kconfig.html#config-esp-int-wdt-timeout-ms>
-  // Disable this <https://stackoverflow.com/questions/51750377/how-to-disable-interrupt-watchdog-in-esp32-or-increase-isr-time-limit>
-  //
-  // So, we save it into a very simple buffer that will eventually be read and sent safely
-  // to the Raspberry.
+  // It's also not a good idea to send **now** the message to the 
+  // Raspberry Pi through I2C from an interrupt handler.
+  
+  // So, we save it into a very simple buffer that will eventually be 
+  // read and sent safely through I2C to the Raspberry.
 
   push (message);
 
@@ -337,12 +324,14 @@ void CAPTOR_check_recv_LoRa_and_I2C_send_to_RPi (int rpi_address) {
     // returns here. Otherwise, we hay have problems with the Interrupt Watchdog
     // <https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-reference/system/wdts.html#interrupt-watchdog>
     
-    yield();
-    
+    //yield();
+
+    //noInterrupts();
     // The TTGO LoRa Gateway forwards a packet (through I2C) to the Raspberry.
     I2C_send_to(rpi_address, message);
-
-    yield();
+    //interrupts();
+    
+    //yield();
     
     message = pop();
   }

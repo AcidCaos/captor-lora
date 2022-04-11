@@ -85,7 +85,7 @@
 
 // CAPTOR I2C ADDRESSES
 #define CAPTOR_ARDUINO_ADDR 0x08    // I2C Address of the Arduino
-#define CAPTOR_RASPBERRY_ADDR 0x99  // I2C Address of the Raspberry
+#define CAPTOR_RASPBERRY_ADDR 0x77  // I2C Address of the Raspberry
 
 /*
  *  DEBUG

@@ -156,12 +156,15 @@ void display_header() {
 }
 
 int count_send_num = 0;
+
 struct {
+  int count = 0;
+  int err = 0;
   String message; // char packet[CAPTOR_PACKET_BYTES + 1];
-  int size;
-  int rssi;
-  int snr;
-  int frequencyError;
+  int size = 0;
+  int rssi = 0;
+  int snr = 0;
+  int frequencyError = 0;
 } Last_packet;
 
 void display_body() {
@@ -179,7 +182,10 @@ void display_body() {
   display.drawString(0, 24, "size: " + String(Last_packet.size));
   display.drawString(0, 35, "rssi: " + String(Last_packet.rssi));
   display.drawString(0, 46, "snr: " + String(Last_packet.snr));
-  display.drawString(0, 57, "fe: " + String(Last_packet.frequencyError));
+  
+  display.drawString(64, 24, "fe: " + String(Last_packet.frequencyError));
+  display.drawString(64, 35, "count: " + String(Last_packet.count));
+  display.drawString(64, 46, "err: " + String(Last_packet.err));
   #endif
 }
 
@@ -228,7 +234,6 @@ void LoRa_receive_handler (int packet_size) {
   // TTGO LoRa gateway receives a Lora packet from a TTGO LoRa node
   
   // It is not a good idea to use Serial inside an interrupt handler.
-  //////// Serial.println("LoRa_receive_handler");
   
   String message = "";
   
@@ -236,14 +241,22 @@ void LoRa_receive_handler (int packet_size) {
     message += (char)LoRa.read();
   }
   
+  // Check CRC
+  byte CRC = 0;
+  for (byte i=0; i<21; i++) CRC = CRC + (char) message[i];
+  if (message[21] != CRC) { // Invalid packet
+    Last_packet.err ++;
+    return;
+  }
+  
   // It's also not a good idea to send **now** the message to the 
   // Raspberry Pi through I2C from an interrupt handler.
-  
   // So, we save it into a very simple buffer that will eventually be 
   // read and sent safely through I2C to the Raspberry.
-
+  
   Last_packet.message = message;
   Last_packet.size = packet_size;
+  Last_packet.count ++;
 
   push (message);
 
@@ -254,11 +267,11 @@ void LoRa_receive_handler (int packet_size) {
  */
 
 void LoRa_send(String message) {
-  Serial.println("LoRa_send");
+  // Serial.println("LoRa_send");
   LoRa.beginPacket();
   LoRa.print(message);
   LoRa.endPacket(); // endPacket(true) => async (non-blocking mode)
-  Serial.println(" * SENT: " + message);
+  // Serial.println(" * SENT: " + message);
   count_send_num++;
 }
 
@@ -268,7 +281,7 @@ void LoRa_send(String message) {
 
 void I2C_send_to(int address, String packet) {
   // The TTGO LoRa Gateway forwards a packet (through I2C) to address.
-  Serial.println("I2C_send_to_RPi" + packet + " (" + packet.length() + " bytes)");
+  //Serial.println("I2C_send_to " + packet + " (" + packet.length() + " bytes)");
   Wire1.beginTransmission(address);
   Wire1.write((char*) packet.c_str());
   Wire1.endTransmission();
@@ -320,7 +333,7 @@ void CAPTOR_check_recv_LoRa_and_I2C_send_to_RPi (int rpi_address) {
     Serial.println(" * Forward packet to RPi: " + message  + " (" + message.length() + " bytes)");
 
     // To avoid a long loop, we let the RT-OS do its housekeeping and then it
-    // returns here. Otherwise, we hay have problems with the Interrupt Watchdog
+    // returns here. Otherwise, we may have problems with the Interrupt Watchdog
     // <https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-reference/system/wdts.html#interrupt-watchdog>
     yield();
 

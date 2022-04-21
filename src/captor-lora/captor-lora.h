@@ -26,7 +26,7 @@
 #define CAPTOR_LORA_H
 
 // Version Info
-#define VERSION "0.3"
+#define VERSION "0.4"
 
 // TTGO LoRa32 V2.1 Pins
 #define SCK     5   // 
@@ -76,7 +76,7 @@
 #define CAPTOR_NODE     0
 #define CAPTOR_GATEWAY  1
 
-#define CAPTOR_ROLE   CAPTOR_GATEWAY   // <-- Modify to change board Role.
+#define CAPTOR_ROLE   CAPTOR_NODE   // <-- Modify to change board Role.
 
 // CAPTOR PACKET CONFIG
 #define CAPTOR_DELAY_REQUESTS 1500  // Time between requests

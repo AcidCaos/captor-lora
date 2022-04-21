@@ -76,10 +76,11 @@
 #define CAPTOR_NODE     0
 #define CAPTOR_GATEWAY  1
 
-#define CAPTOR_ROLE   CAPTOR_GATEWAY
+#define CAPTOR_ROLE   CAPTOR_GATEWAY   // <-- Modify to change board Role.
 
 // CAPTOR PACKET CONFIG
-#define CAPTOR_PACK_REQUEST 4       // Number of packets requested to the Arduino
+#define CAPTOR_DELAY_REQUESTS 1500  // Time between requests
+#define CAPTOR_REQUEST_PACKETS 4    // Number of packets requested to the Arduino
 #define CAPTOR_PACKET_BYTES 25      // Size in bytes of each packet
 #define CAPTOR_PACKET_BUFFER_N 8    // Size in number of packets of the LoRa receive packet buffer
 
@@ -129,26 +130,24 @@ void setup_IO_pins();
 void setup_reset_init_display();
 void setup_SPI_bus();
 void setup_LoRa();
+void setup_I2C();
 
 /* DISPLAY */
 
 void display_clear();
 void display_display();
 void display_header();
+void display_body();
 
 /* LoRa */
 
 void LoRa_receive_handler(int);
-void LoRa_request_handler();
 void LoRa_send(String);
-//void LoRa_send_dummy();
 
 /* I2C */
 
 String I2C_request_from(int, int);
 void I2C_send_to(int, String);
-//void I2C_receive_handler(int);
-//void I2C_request_handler();
 
 /* CAPTOR */
 

@@ -40,7 +40,7 @@ void setup() {
 void loop() {
 
   #if CAPTOR_ROLE == CAPTOR_NODE
-  CAPTOR_I2C_request_and_LoRa_send(CAPTOR_ARDUINO_ADDR, CAPTOR_PACK_REQUEST, CAPTOR_PACKET_BYTES);
+  CAPTOR_I2C_request_and_LoRa_send(CAPTOR_ARDUINO_ADDR, CAPTOR_REQUEST_PACKETS, CAPTOR_PACKET_BYTES);
   #endif
 
   #if CAPTOR_ROLE == CAPTOR_GATEWAY
@@ -54,7 +54,7 @@ void loop() {
   display_display();
   #endif
 
-  delay(100);
+  delay(CAPTOR_DELAY_REQUESTS);
 }
 
 /*
@@ -156,14 +156,30 @@ void display_header() {
 }
 
 int count_send_num = 0;
-String last_message_recv = "";
+struct {
+  String message; // char packet[CAPTOR_PACKET_BYTES + 1];
+  int size;
+  int rssi;
+  int snr;
+  int frequencyError;
+} Last_packet;
+
 void display_body() {
   #if CAPTOR_ROLE == CAPTOR_NODE
   display.drawString(0, 13, "sent: " + String(count_send_num));
   #endif
 
   #if CAPTOR_ROLE == CAPTOR_GATEWAY
-  display.drawString(0, 13, "last: " + last_message_recv);
+  
+  Last_packet.rssi = LoRa.packetRssi();
+  Last_packet.snr = LoRa.packetSnr();
+  Last_packet.frequencyError = LoRa.packetFrequencyError();
+  
+  display.drawString(0, 13, "last: " + Last_packet.message);
+  display.drawString(0, 24, "size: " + String(Last_packet.size));
+  display.drawString(0, 35, "rssi: " + String(Last_packet.rssi));
+  display.drawString(0, 46, "snr: " + String(Last_packet.snr));
+  display.drawString(0, 57, "fe: " + String(Last_packet.frequencyError));
   #endif
 }
 
@@ -171,7 +187,7 @@ void display_body() {
  * GATEWAY LoRa
  */
 
-struct {
+struct { // Really simple Receive buffer
   char packets[CAPTOR_PACKET_BUFFER_N][CAPTOR_PACKET_BYTES + 1];
   int used[CAPTOR_PACKET_BUFFER_N];
   int hint_empty;
@@ -226,6 +242,9 @@ void LoRa_receive_handler (int packet_size) {
   // So, we save it into a very simple buffer that will eventually be 
   // read and sent safely through I2C to the Raspberry.
 
+  Last_packet.message = message;
+  Last_packet.size = packet_size;
+
   push (message);
 
 }
@@ -244,14 +263,6 @@ void LoRa_send(String message) {
 }
 
 /*
-void LoRa_send_dummy() {
-  String data = String(count_send_num);
-  count_send_num++;
-  LoRa_send(data);
-}
-*/
-
-/*
  * GATEWAY I2C
  */
 
@@ -262,17 +273,6 @@ void I2C_send_to(int address, String packet) {
   Wire1.write((char*) packet.c_str());
   Wire1.endTransmission();
 }
-
-/*
-uint32_t req = 0;
-void I2C_request_handler() {
-  Serial.println("I2C_request_handler");
-  Wire1.print(req);
-  Wire1.print(" Packets.");
-  Serial.print(" * SENT: " + String(req) + " Packets.");
-  req++;
-}
-*/
 
 /*
  * NODE I2C
@@ -318,7 +318,6 @@ void CAPTOR_check_recv_LoRa_and_I2C_send_to_RPi (int rpi_address) {
   String message = pop();
   while (message != "") {
     Serial.println(" * Forward packet to RPi: " + message  + " (" + message.length() + " bytes)");
-    last_message_recv = message;
 
     // To avoid a long loop, we let the RT-OS do its housekeeping and then it
     // returns here. Otherwise, we hay have problems with the Interrupt Watchdog

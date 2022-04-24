@@ -105,7 +105,17 @@ void setup_LoRa() {
   }
   Serial.println("SETUP: LoRa Band: " + String(BAND) + "Hz");
   delay(1500);
-  
+
+  // SX1276 parameters config
+  LoRa.setTxPower(17);                  // Output Power = 17 dBm 
+                                        // * LoRa library default value: 17 dBm
+  LoRa.setSignalBandwidth(125E3);       // Bandwidth = 125 kHz
+                                        // * SX1276 default value: 125 kHz
+  LoRa.setSpreadingFactor(7);           // Spreading Factor = 2^sf = 128 chips/symbol
+                                        // * SX1276 default value: sf=7 SF = 128
+  LoRa.setCodingRate4(5);               // Coding Rate = 4/d = 4/5
+                                        // * SX1276 default value: d=5, CR = 4/5
+  // Set operation mode
   #if CAPTOR_ROLE == CAPTOR_NODE
   LoRa.idle();                          // set standby mode
   LoRa.disableInvertIQ();               // normal mode
@@ -164,7 +174,7 @@ struct {
   int size = 0;
   int rssi = 0;
   int snr = 0;
-  int frequencyError = 0;
+  float frequencyError = 0;
 } Last_packet;
 
 void display_body() {

@@ -21,7 +21,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
- 
+
 #ifndef CAPTOR_LORA_H
 #define CAPTOR_LORA_H
 
@@ -100,13 +100,13 @@
  * 
  *  - Add the Espressif ESP32 package url https://raw.githubusercontent.com/espressif/arduino-esp32/gh-pages/package_esp32_index.json to the Additional Boards Manager URLs (File > Preferences)
  *  - Install esp32 by Espressif Systems. Find it on Boards Manager: http://boardsmanager#esp32
- *  
+ * 
  *  LIBRARIES
- *  
- *  - sandeepmistry's LoRa (version 0.8.0): https://www.arduino.cc/reference/en/libraries/lora/ 
+ * 
+ *  - sandeepmistry's LoRa (version 0.8.0): https://www.arduino.cc/reference/en/libraries/lora/
  *     Find it on Library Manager: http://librarymanager#LoRa-Arduino-sending-data-radios
  *     Or on GitHub: https://github.com/sandeepmistry/arduino-LoRa
- *  - ThingPulse's OLED SSD1306 (version 4.2.1): https://www.arduino.cc/reference/en/libraries/esp8266-and-esp32-oled-driver-for-ssd1306-displays/ 
+ *  - ThingPulse's OLED SSD1306 (version 4.2.1): https://www.arduino.cc/reference/en/libraries/esp8266-and-esp32-oled-driver-for-ssd1306-displays/
  *     Find it on Library Manager: http://librarymanager#I2C-display-driver-SSD1306-OLED-connected-ESP8266
  *     Or on GitHub: https://github.com/ThingPulse/esp8266-oled-ssd1306
  */
@@ -124,7 +124,7 @@ SSD1306Wire display(DISP_ADDRESS, OLED_SDA, OLED_SCL);
 #endif
 
 /* SETUP */
- 
+
 void setup_serial();
 void setup_IO_pins();
 void setup_reset_init_display();

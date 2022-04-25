@@ -106,7 +106,7 @@ void setup_LoRa() {
   Serial.println("SETUP: LoRa Band: " + String(BAND) + "Hz");
   delay(1500);
 
-  // SX1276 parameters config
+  // LoRa Radio parameters config
   LoRa.setTxPower(17);                  // Output Power = 17 dBm 
                                         // * LoRa library default value: 17 dBm
   LoRa.setSignalBandwidth(125E3);       // Bandwidth = 125 kHz
@@ -115,6 +115,12 @@ void setup_LoRa() {
                                         // * SX1276 default value: sf=7 SF = 128
   LoRa.setCodingRate4(5);               // Coding Rate = 4/d = 4/5
                                         // * SX1276 default value: d=5, CR = 4/5
+  // LoRa Packet parameters config
+  LoRa.setPreambleLength(12);           // Preamble Length between 6 and 65535
+                                        // * SX1276 default value: 12
+  LoRa.enableCrc();                     // Payload CRC = enabled. Or: disableCrc()
+                                        // * SX1276 default value: disabled
+  
   // Set operation mode
   #if CAPTOR_ROLE == CAPTOR_NODE
   LoRa.idle();                          // set standby mode
@@ -124,6 +130,9 @@ void setup_LoRa() {
   #if CAPTOR_ROLE == CAPTOR_GATEWAY
   LoRa.disableInvertIQ();               // normal mode
   LoRa.onReceive(LoRa_receive_handler); // receive interrupt handler
+                                        // Note: If using implicit mode when sending,
+                                        //   packets must be received with explicit size:
+                                        //   receive(int size) [or parsePacket(int size)]
   LoRa.receive();                       // set receive mode
   #endif
 }

@@ -23,11 +23,12 @@
  */
 
 #include <inttypes.h>
+#include <Esp.h> // For Low Power and ESP32 data <https://github.com/espressif/arduino-esp32/blob/master/cores/esp32/Esp.h>
 
 #include "captor-lora.h"
 
 void setup() {
-  
+
   setup_serial();
   setup_IO_pins();
   setup_reset_init_display();
@@ -47,7 +48,7 @@ void loop() {
   CAPTOR_check_recv_LoRa_and_I2C_send_to_RPi(CAPTOR_RASPBERRY_ADDR);
   #endif
 
-  #if DISPLAY_INFO
+  #if OPERATING_MODE == DEBUG
   display_clear();
   display_header();
   display_body();
@@ -62,48 +63,52 @@ void loop() {
  */
 
 void setup_serial() {
+  #if OPERATING_MODE == DEBUG
   // Init Serial Monitor
   Serial.begin(115200);
   Serial.println();
+  #endif
 }
 
 void setup_IO_pins() {
   // Set IO Pins
-  Serial.println("SETUP: Set IO Pins");
+  DEBUG_SERIAL_LN("SETUP: Set IO Pins");
   pinMode(OLED_RST, OUTPUT); // Display Reset
 }
 
 void setup_reset_init_display() {
+  #if OPERATING_MODE == DEBUG
   // Reset Display
-  Serial.println("SETUP: Reset Display");
+  DEBUG_SERIAL_LN("SETUP: Reset Display");
   digitalWrite(OLED_RST, LOW);
   delay(50);
   digitalWrite(OLED_RST, HIGH);
   
   // Init Display
-  Serial.println("SETUP: Init Display");
+  DEBUG_SERIAL_LN("SETUP: Init Display");
   display.init();
   display.setContrast(127); // 0..255
   display.flipScreenVertically();
   display.setFont(ArialMT_Plain_16);
   delay(1500);
+  #endif
 }
 
 void setup_SPI_bus() {
   // Init SPI bus 
-  Serial.println("SETUP: Init SPI bus");
+  DEBUG_SERIAL_LN("SETUP: Init SPI bus");
   SPI.begin(SCK, MISO, MOSI, SS);
 }
 
 void setup_LoRa() {
   // Init LoRa
-  Serial.println("SETUP: Init LoRa");
+  DEBUG_SERIAL_LN("SETUP: Init LoRa");
   LoRa.setPins(SS, RST, DIO0);
   if (!LoRa.begin(BAND)) {
-    Serial.println("ERROR: LoRa could not be initialized");
+    DEBUG_SERIAL_LN("ERROR: LoRa could not be initialized");
     while (1);
   }
-  Serial.println("SETUP: LoRa Band: " + String(BAND) + "Hz");
+  DEBUG_SERIAL_LN("SETUP: LoRa Band: " + String(BAND) + "Hz");
   delay(1500);
 
   // LoRa Radio parameters config
@@ -116,9 +121,9 @@ void setup_LoRa() {
   LoRa.setCodingRate4(5);               // Coding Rate = 4/d = 4/5
                                         // * SX1276 default value: d=5, CR = 4/5
   // LoRa Packet parameters config
-  LoRa.setPreambleLength(12);           // Preamble Length between 6 and 65535
-                                        // * SX1276 default value: 12
-  LoRa.enableCrc();                     // Payload CRC = enabled. Or: disableCrc()
+  LoRa.setPreambleLength(8);            // Preamble Length between 2 and 65535
+                                        // * SX1276 default value: 8
+  //LoRa.enableCrc();                     // Payload CRC = enabled. Or: disableCrc()
                                         // * SX1276 default value: disabled
   
   // Set operation mode
@@ -139,11 +144,11 @@ void setup_LoRa() {
 
 void setup_I2C() {
   // Init I2C Second Peripheral
-  Serial.println("SETUP: Init I2C");
+  DEBUG_SERIAL_LN("SETUP: Init I2C");
 
   #if CAPTOR_ROLE == CAPTOR_NODE || CAPTOR_ROLE == CAPTOR_GATEWAY
   if (!Wire1.begin(I2C_SDA, I2C_SCL)) { // Master Begin
-    Serial.println("ERROR: I2C could not be initialized");
+    DEBUG_SERIAL_LN("ERROR: I2C could not be initialized");
     while(1);
   }
   #endif
@@ -153,6 +158,7 @@ void setup_I2C() {
  * DISPLAY
  */
 
+#if OPERATING_MODE == DEBUG
 void display_clear() {
   display.clear();
 }
@@ -207,6 +213,7 @@ void display_body() {
   display.drawString(64, 46, "err: " + String(Last_packet.err));
   #endif
 }
+#endif
 
 /*
  * GATEWAY LoRa
@@ -264,7 +271,9 @@ void LoRa_receive_handler (int packet_size) {
   byte CRC = 0;
   for (byte i=0; i<21; i++) CRC = CRC + (char) message[i];
   if (message[21] != CRC) { // Invalid packet
+    #if OPERATING_MODE == DEBUG
     Last_packet.err ++;
+    #endif
     return;
   }
   
@@ -272,10 +281,12 @@ void LoRa_receive_handler (int packet_size) {
   // Raspberry Pi through I2C from an interrupt handler.
   // So, we save it into a very simple buffer that will eventually be 
   // read and sent safely through I2C to the Raspberry.
-  
+
+  #if OPERATING_MODE == DEBUG
   Last_packet.message = message;
   Last_packet.size = packet_size;
   Last_packet.count ++;
+  #endif
 
   push (message);
 
@@ -291,7 +302,9 @@ void LoRa_send(String message) {
   LoRa.print(message);
   LoRa.endPacket(); // endPacket(true) => async (non-blocking mode)
   // Serial.println(" * SENT: " + message);
+  #if OPERATING_MODE == DEBUG
   count_send_num++;
+  #endif
 }
 
 /*
@@ -311,15 +324,15 @@ void I2C_send_to(int address, String packet) {
  */
 
 String I2C_request_from(int slave, int bytes) {
-  Serial.println("I2C_request_from");
+  DEBUG_SERIAL_LN("I2C_request_from");
   int avail = Wire1.requestFrom(slave, bytes);
   if (avail > 0) {
-    Serial.println(" * Available data. " + String(avail) + " bytes.");
+    DEBUG_SERIAL_LN(" * Available data. " + String(avail) + " bytes.");
     char buffer[avail];
     Wire1.readBytes(buffer, avail);
     buffer[avail] = 0; // End of string
     String convert(buffer);
-    Serial.println(" * Request response: " + convert);
+    DEBUG_SERIAL_LN(" * Request response: " + convert);
     return convert;
   }
   return String("");
@@ -332,7 +345,7 @@ String I2C_request_from(int slave, int bytes) {
 void CAPTOR_I2C_request_and_LoRa_send(int slave, int num_packets, int bytes) {
   // A TTGO LoRa node reads data (through I2C) from the Arduino (slave with sensors),
   // and sends it to the TTGO LoRa Gateway.
-  Serial.println("CAPTOR_I2C_request_and_LoRa_send");
+  DEBUG_SERIAL_LN("CAPTOR_I2C_request_and_LoRa_send");
   for (int i = 0; i < num_packets; i++){
     
     String p_i = I2C_request_from(slave, bytes);
@@ -346,10 +359,10 @@ void CAPTOR_I2C_request_and_LoRa_send(int slave, int num_packets, int bytes) {
  */
 
 void CAPTOR_check_recv_LoRa_and_I2C_send_to_RPi (int rpi_address) {
-  Serial.println("CAPTOR_check_recv_LoRa_and_I2C_send_to_RPi");
+  DEBUG_SERIAL_LN("CAPTOR_check_recv_LoRa_and_I2C_send_to_RPi");
   String message = pop();
   while (message != "") {
-    Serial.println(" * Forward packet to RPi: " + message  + " (" + message.length() + " bytes)");
+    DEBUG_SERIAL_LN(" * Forward packet to RPi: " + message  + " (" + message.length() + " bytes)");
 
     // To avoid a long loop, we let the RT-OS do its housekeeping and then it
     // returns here. Otherwise, we may have problems with the Interrupt Watchdog

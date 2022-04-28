@@ -89,11 +89,20 @@
 #define CAPTOR_RASPBERRY_ADDR 0x77  // I2C Address of the Raspberry
 
 /*
- *  DEBUG
+ *  DEBUG or SILENT mode
  */
 
-#define DISPLAY_INFO    1
-#define SERIAL_LOG      1
+#define DEBUG   0
+#define SILENT  1
+
+#define OPERATING_MODE  DEBUG   // <-- Modify to change board operating mode.
+
+#if OPERATING_MODE == DEBUG
+//#define DEBUG_SERIAL_LN(x) Serial.print(__FUNCTION__); Serial.print(": "); Serial.println(x);
+#define DEBUG_SERIAL_LN(x) Serial.println(x);
+#else
+#define DEBUG_SERIAL_LN(x) (void) 0;
+#endif
 
 /*
  *  BOARD MANAGER
@@ -119,7 +128,7 @@
 #include <Wire.h>
 #include <SSD1306Wire.h>
 
-#if DISPLAY_INFO
+#if OPERATING_MODE == DEBUG
 SSD1306Wire display(DISP_ADDRESS, OLED_SDA, OLED_SCL);
 #endif
 

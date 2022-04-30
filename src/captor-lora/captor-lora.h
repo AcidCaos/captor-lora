@@ -57,14 +57,14 @@
 // OLED Display
 #define DISP_WIDTH    128
 #define DISP_HEIGHT   64
-#define DISP_ADDRESS  0x3C  // I2C address
+#define DISP_ADDRESS  0x3C  // I2C address on Wire0
 
 // LoRa Bands
 #define ASIA_BAND   433E6
 #define EUROPE_BAND 868E6
 #define USA_BAND    915E6
 
-#define BAND        EUROPE_BAND
+#define BAND        EUROPE_BAND   // <-- Set used LoRa Band.
 
 /*
  *  CAPTOR LoRa board roles.
@@ -89,16 +89,18 @@
 #define CAPTOR_RASPBERRY_ADDR 0x77  // I2C Address of the Raspberry
 
 /*
- *  DEBUG or SILENT mode
+ *  LOW POWER mode
  */
 
-#define DEBUG   0
-#define SILENT  1
+#define LOW_POWER  DEBUG  // <-- Comment to disable Low Power operating mode.
 
-#define OPERATING_MODE  DEBUG   // <-- Modify to change board operating mode.
+/*
+ *  DEBUG mode
+ */
 
-#if OPERATING_MODE == DEBUG
-//#define DEBUG_SERIAL_LN(x) Serial.print(__FUNCTION__); Serial.print(": "); Serial.println(x);
+#define DEBUG_MODE  // <-- Comment to disable Debug reporting mode.
+
+#ifdef DEBUG_MODE
 #define DEBUG_SERIAL_LN(x) Serial.println(x);
 #else
 #define DEBUG_SERIAL_LN(x) (void) 0;

@@ -48,7 +48,7 @@ void loop() {
   CAPTOR_check_recv_LoRa_and_I2C_send_to_RPi(CAPTOR_RASPBERRY_ADDR);
   #endif
 
-  #if OPERATING_MODE == DEBUG
+  #ifdef DEBUG_MODE
   display_clear();
   display_header();
   display_body();
@@ -63,7 +63,7 @@ void loop() {
  */
 
 void setup_serial() {
-  #if OPERATING_MODE == DEBUG
+  #ifdef DEBUG_MODE
   // Init Serial Monitor
   Serial.begin(115200);
   Serial.println();
@@ -77,7 +77,7 @@ void setup_IO_pins() {
 }
 
 void setup_reset_init_display() {
-  #if OPERATING_MODE == DEBUG
+  #ifdef DEBUG_MODE
   // Reset Display
   DEBUG_SERIAL_LN("SETUP: Reset Display");
   digitalWrite(OLED_RST, LOW);
@@ -158,7 +158,7 @@ void setup_I2C() {
  * DISPLAY
  */
 
-#if OPERATING_MODE == DEBUG
+#ifdef DEBUG_MODE
 void display_clear() {
   display.clear();
 }
@@ -271,7 +271,7 @@ void LoRa_receive_handler (int packet_size) {
   byte CRC = 0;
   for (byte i=0; i<21; i++) CRC = CRC + (char) message[i];
   if (message[21] != CRC) { // Invalid packet
-    #if OPERATING_MODE == DEBUG
+    #ifdef DEBUG_MODE
     Last_packet.err ++;
     #endif
     return;
@@ -282,7 +282,7 @@ void LoRa_receive_handler (int packet_size) {
   // So, we save it into a very simple buffer that will eventually be 
   // read and sent safely through I2C to the Raspberry.
 
-  #if OPERATING_MODE == DEBUG
+  #ifdef DEBUG_MODE
   Last_packet.message = message;
   Last_packet.size = packet_size;
   Last_packet.count ++;
@@ -302,7 +302,7 @@ void LoRa_send(String message) {
   LoRa.print(message);
   LoRa.endPacket(); // endPacket(true) => async (non-blocking mode)
   // Serial.println(" * SENT: " + message);
-  #if OPERATING_MODE == DEBUG
+  #ifdef DEBUG_MODE
   count_send_num++;
   #endif
 }

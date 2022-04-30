@@ -76,10 +76,10 @@
 #define CAPTOR_NODE     0
 #define CAPTOR_GATEWAY  1
 
-#define CAPTOR_ROLE   CAPTOR_NODE   // <-- Modify to change board Role.
+#define CAPTOR_ROLE   CAPTOR_GATEWAY   // <-- Modify to change board Role.
 
 // CAPTOR PACKET CONFIG
-#define CAPTOR_DELAY_REQUESTS 1500  // Time between requests
+#define CAPTOR_DELAY_REQUESTS  4    // Seconds between requests
 #define CAPTOR_REQUEST_PACKETS 4    // Number of packets requested to the Arduino
 #define CAPTOR_PACKET_BYTES 25      // Size in bytes of each packet
 #define CAPTOR_PACKET_BUFFER_N 8    // Size in number of packets of the LoRa receive packet buffer
@@ -90,9 +90,23 @@
 
 /*
  *  LOW POWER mode
+ *  
+ *  ESP32 offers a deep sleep mode for effective power saving.
+ *  In this mode CPUs, most of the RAM, and all the digital 
+ *  peripherals which are clocked from APB_CLK are powered off.
+ *  
+ *  The only parts of the chip which can still be powered on are:
+ *  RTC controller, RTC peripherals, and RTC memories.
+ *  
  */
 
-#define LOW_POWER  DEBUG  // <-- Comment to disable Low Power operating mode.
+// #define LOW_POWER   // <-- Comment to disable Low Power operating mode.
+
+#ifdef LOW_POWER // Low Power mode is only for CAPTOR Nodes.
+#if CAPTOR_ROLE == CAPTOR_GATEWAY
+#error "Low Power mode is only for CAPTOR Nodes. Current role is Gateway."
+#endif
+#endif
 
 /*
  *  DEBUG mode
@@ -142,6 +156,7 @@ void setup_reset_init_display();
 void setup_SPI_bus();
 void setup_LoRa();
 void setup_I2C();
+void setup_low_power();
 
 /* DISPLAY */
 
@@ -162,6 +177,7 @@ void I2C_send_to(int, String);
 
 /* CAPTOR */
 
+void CAPTOR_task();
 void CAPTOR_I2C_request_and_LoRa_send(int, int, int);
 void CAPTOR_check_recv_LoRa_and_I2C_send_to_RPi(int);
 

@@ -35,27 +35,15 @@ void setup() {
   setup_SPI_bus();
   setup_LoRa();
   setup_I2C();
+  setup_low_power();
   
 }
 
 void loop() {
-
-  #if CAPTOR_ROLE == CAPTOR_NODE
-  CAPTOR_I2C_request_and_LoRa_send(CAPTOR_ARDUINO_ADDR, CAPTOR_REQUEST_PACKETS, CAPTOR_PACKET_BYTES);
+  #ifndef LOW_POWER // In Low Power mode, loop is never reached.
+  CAPTOR_task();
+  delay(CAPTOR_DELAY_REQUESTS * 1000); // milliseconds
   #endif
-
-  #if CAPTOR_ROLE == CAPTOR_GATEWAY
-  CAPTOR_check_recv_LoRa_and_I2C_send_to_RPi(CAPTOR_RASPBERRY_ADDR);
-  #endif
-
-  #ifdef DEBUG_MODE
-  display_clear();
-  display_header();
-  display_body();
-  display_display();
-  #endif
-
-  delay(CAPTOR_DELAY_REQUESTS);
 }
 
 /*
@@ -151,6 +139,41 @@ void setup_I2C() {
     DEBUG_SERIAL_LN("ERROR: I2C could not be initialized");
     while(1);
   }
+  #endif
+}
+
+// store data in RTC memory to use it over reboots
+RTC_DATA_ATTR int bootCount = 0;
+
+void setup_low_power() {
+  // Init Low Power on reboot
+  #ifdef LOW_POWER
+  DEBUG_SERIAL_LN("SETUP: Init Low Power");
+  
+  // Increment boot number and print it every reboot
+  ++bootCount;
+  DEBUG_SERIAL_LN(" * Boot count: " + String(bootCount));
+
+  // Print wake up reason
+  esp_sleep_wakeup_cause_t wakeup_reason;
+  wakeup_reason = esp_sleep_get_wakeup_cause();
+  if (wakeup_reason == ESP_SLEEP_WAKEUP_TIMER) {
+    DEBUG_SERIAL_LN(" * Wakeup caused by timer");
+  } else {
+    DEBUG_SERIAL_LN(" * Wakeup caused by external signal (RTC_IO or RTC_CNTL),")
+    DEBUG_SERIAL_LN("   touchpad, ULP program, or was not caused by deep sleep.");
+  }
+  
+  // Do what is supposed to be done (CAPTOR Node task)
+  CAPTOR_task();
+  
+  // Set up (again) the wakeup source
+  esp_sleep_enable_timer_wakeup(CAPTOR_DELAY_REQUESTS * 1000000ULL); // microseconds
+  DEBUG_SERIAL_LN(" * Set next sleep for " + String(CAPTOR_DELAY_REQUESTS) + "sec.");
+
+  // Enter Deep Sleep <https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-reference/system/sleep_modes.html>
+  esp_deep_sleep_start();
+  // this will never be reached.
   #endif
 }
 
@@ -336,6 +359,27 @@ String I2C_request_from(int slave, int bytes) {
     return convert;
   }
   return String("");
+}
+
+/*
+ * CAPTOR
+ */
+
+void CAPTOR_task () {
+  #if CAPTOR_ROLE == CAPTOR_NODE
+  CAPTOR_I2C_request_and_LoRa_send(CAPTOR_ARDUINO_ADDR, CAPTOR_REQUEST_PACKETS, CAPTOR_PACKET_BYTES);
+  #endif
+
+  #if CAPTOR_ROLE == CAPTOR_GATEWAY
+  CAPTOR_check_recv_LoRa_and_I2C_send_to_RPi(CAPTOR_RASPBERRY_ADDR);
+  #endif
+
+  #ifdef DEBUG_MODE
+  display_clear();
+  display_header();
+  display_body();
+  display_display();
+  #endif
 }
 
 /*

@@ -41,8 +41,7 @@ void setup() {
 
 void loop() {
   #ifndef LOW_POWER // In Low Power mode, loop is never reached.
-  CAPTOR_task();
-  delay(CAPTOR_DELAY_REQUESTS * 1000); // milliseconds
+  CAPTOR_loop();
   #endif
 }
 
@@ -100,19 +99,21 @@ void setup_LoRa() {
   delay(1500);
 
   // LoRa Radio parameters config
-  LoRa.setTxPower(17);                  // Output Power = 17 dBm 
-                                        // * LoRa library default value: 17 dBm
-  LoRa.setSignalBandwidth(125E3);       // Bandwidth = 125 kHz
-                                        // * SX1276 default value: 125 kHz
-  LoRa.setSpreadingFactor(7);           // Spreading Factor = 2^sf = 128 chips/symbol
-                                        // * SX1276 default value: sf=7 SF = 128
-  LoRa.setCodingRate4(5);               // Coding Rate = 4/d = 4/5
-                                        // * SX1276 default value: d=5, CR = 4/5
+  LoRa.setTxPower(LORA_TX_POWER);                 // Output Power = 17 dBm 
+                                                  // * LoRa library default value: 17 dBm
+  LoRa.setSignalBandwidth(LORA_BANDWIDTH);        // Bandwidth = 125 kHz
+                                                  // * SX1276 default value: 125 kHz
+  LoRa.setSpreadingFactor(LORA_SPREADING_FACTOR); // Spreading Factor = 2^sf = 128 chips/symbol
+                                                  // * SX1276 default value: sf=7 SF = 128
+  LoRa.setCodingRate4(LORA_CODING_RATE);          // Coding Rate = 4/d = 4/5
+                                                  // * SX1276 default value: d=5, CR = 4/5
   // LoRa Packet parameters config
-  LoRa.setPreambleLength(8);            // Preamble Length between 2 and 65535
-                                        // * SX1276 default value: 8
-  //LoRa.enableCrc();                     // Payload CRC = enabled. Or: disableCrc()
-                                        // * SX1276 default value: disabled
+  LoRa.setPreambleLength(LORA_PREAMBLE_LENGTH);   // Preamble Length between 2 and 65535
+                                                  // * SX1276 default value: 8
+  #ifdef LORA_CRC_ENABLED
+  LoRa.enableCrc();                               // Payload CRC = enabled. Or: disableCrc()
+                                                  // * SX1276 default value: disabled
+  #endif
   
   // Set operation mode
   #if CAPTOR_ROLE == CAPTOR_NODE
@@ -142,8 +143,10 @@ void setup_I2C() {
   #endif
 }
 
+#ifdef LOW_POWER
 // store data in RTC memory to use it over reboots
 RTC_DATA_ATTR int bootCount = 0;
+#endif
 
 void setup_low_power() {
   // Init Low Power on reboot
@@ -209,10 +212,10 @@ struct {
   int count = 0;
   int err = 0;
   String message; // char packet[CAPTOR_PACKET_BYTES + 1];
-  int size = 0;
-  int rssi = 0;
-  int snr = 0;
-  float frequencyError = 0;
+  int size = 0; // bytes
+  int rssi = 0; // dBm
+  float snr = 0; // dB
+  long frequencyError = 0; // Hz
 } Last_packet;
 
 void display_body() {
@@ -227,11 +230,11 @@ void display_body() {
   Last_packet.frequencyError = LoRa.packetFrequencyError();
   
   display.drawString(0, 13, "last: " + Last_packet.message);
-  display.drawString(0, 24, "size: " + String(Last_packet.size));
-  display.drawString(0, 35, "rssi: " + String(Last_packet.rssi));
-  display.drawString(0, 46, "snr: " + String(Last_packet.snr));
+  display.drawString(0, 24, "size: " + String(Last_packet.size) + " bytes");
+  display.drawString(0, 35, "rssi: " + String(Last_packet.rssi) + " dBm");
+  display.drawString(0, 46, "snr: " + String(Last_packet.snr) + " dB");
   
-  display.drawString(64, 24, "fe: " + String(Last_packet.frequencyError));
+  display.drawString(64, 24, "fe: " + String(Last_packet.frequencyError) + " Hz");
   display.drawString(64, 35, "count: " + String(Last_packet.count));
   display.drawString(64, 46, "err: " + String(Last_packet.err));
   #endif
@@ -320,11 +323,12 @@ void LoRa_receive_handler (int packet_size) {
  */
 
 void LoRa_send(String message) {
-  // Serial.println("LoRa_send");
+  DEBUG_SERIAL("NODE [LoRa] SEND " + String(message.length()) + " bytes... ");
   LoRa.beginPacket();
   LoRa.print(message);
-  LoRa.endPacket(); // endPacket(true) => async (non-blocking mode)
-  // Serial.println(" * SENT: " + message);
+  int ret = LoRa.endPacket(); // endPacket(true) => async (non-blocking mode)
+  if (ret) {DEBUG_SERIAL_LN("Ok.");}
+  else {DEBUG_SERIAL_LN("/!\\ FAILED");}
   #ifdef DEBUG_MODE
   count_send_num++;
   #endif
@@ -336,7 +340,7 @@ void LoRa_send(String message) {
 
 void I2C_send_to(int address, String packet) {
   // The TTGO LoRa Gateway forwards a packet (through I2C) to address.
-  //Serial.println("I2C_send_to " + packet + " (" + packet.length() + " bytes)");
+  DEBUG_SERIAL_LN("GATEWAY [I2C] SEND_TO @=" + String(address) + "; (" + String(packet.length()) + " bytes): <" + packet + ">");
   Wire1.beginTransmission(address);
   Wire1.write((char*) packet.c_str());
   Wire1.endTransmission();
@@ -347,17 +351,17 @@ void I2C_send_to(int address, String packet) {
  */
 
 String I2C_request_from(int slave, int bytes) {
-  DEBUG_SERIAL_LN("I2C_request_from");
+  DEBUG_SERIAL("NODE [I2C] REQUEST_FROM @=" + String(slave) + ", " + String(bytes) + " bytes... ");
   int avail = Wire1.requestFrom(slave, bytes);
   if (avail > 0) {
-    DEBUG_SERIAL_LN(" * Available data. " + String(avail) + " bytes.");
+    DEBUG_SERIAL("GOT " + String(avail) + " bytes. ");
     char buffer[avail];
     Wire1.readBytes(buffer, avail);
     buffer[avail] = 0; // End of string
     String convert(buffer);
-    DEBUG_SERIAL_LN(" * Request response: " + convert);
+    DEBUG_SERIAL_LN("RESPONSE: <" + convert + ">");
     return convert;
-  }
+  } else DEBUG_SERIAL_LN("/!\\ FAILED");
   return String("");
 }
 
@@ -365,7 +369,7 @@ String I2C_request_from(int slave, int bytes) {
  * CAPTOR
  */
 
-void CAPTOR_task () {
+void CAPTOR_loop () {
   #if CAPTOR_ROLE == CAPTOR_NODE
   CAPTOR_I2C_request_and_LoRa_send(CAPTOR_ARDUINO_ADDR, CAPTOR_REQUEST_PACKETS, CAPTOR_PACKET_BYTES);
   #endif
@@ -380,6 +384,12 @@ void CAPTOR_task () {
   display_body();
   display_display();
   #endif
+
+  #if CAPTOR_ROLE == CAPTOR_NODE
+  delay(CAPTOR_DELAY_REQUESTS * 1000); // milliseconds
+  #elif CAPTOR_ROLE == CAPTOR_GATEWAY
+  delay(CAPTOR_RECEIVE_DELAY * 1000); // milliseconds
+  #endif
 }
 
 /*
@@ -389,7 +399,6 @@ void CAPTOR_task () {
 void CAPTOR_I2C_request_and_LoRa_send(int slave, int num_packets, int bytes) {
   // A TTGO LoRa node reads data (through I2C) from the Arduino (slave with sensors),
   // and sends it to the TTGO LoRa Gateway.
-  DEBUG_SERIAL_LN("CAPTOR_I2C_request_and_LoRa_send");
   for (int i = 0; i < num_packets; i++){
     
     String p_i = I2C_request_from(slave, bytes);
@@ -403,10 +412,9 @@ void CAPTOR_I2C_request_and_LoRa_send(int slave, int num_packets, int bytes) {
  */
 
 void CAPTOR_check_recv_LoRa_and_I2C_send_to_RPi (int rpi_address) {
-  DEBUG_SERIAL_LN("CAPTOR_check_recv_LoRa_and_I2C_send_to_RPi");
   String message = pop();
   while (message != "") {
-    DEBUG_SERIAL_LN(" * Forward packet to RPi: " + message  + " (" + message.length() + " bytes)");
+    DEBUG_SERIAL_LN("GATEWAY [LoRa] RECEIVE (" + String(message.length()) + " bytes): <" + message + ">");
 
     // To avoid a long loop, we let the RT-OS do its housekeeping and then it
     // returns here. Otherwise, we may have problems with the Interrupt Watchdog

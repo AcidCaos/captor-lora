@@ -26,8 +26,12 @@
 #define CAPTOR_LORA_H
 
 // Version Info
-#define VERSION "0.4"
+#define VERSION "0.5"
 
+/*
+ *  Board PINS
+ */
+ 
 // TTGO LoRa32 V2.1 Pins
 #define SCK     5   // 
 #define MISO    19  // 
@@ -54,6 +58,10 @@
 #define SD_SCLK   14
 #define SD_CS     13
 
+/*
+ *  Board Fixed Config
+ */
+
 // OLED Display
 #define DISP_WIDTH    128
 #define DISP_HEIGHT   64
@@ -76,13 +84,25 @@
 #define CAPTOR_NODE     0
 #define CAPTOR_GATEWAY  1
 
-#define CAPTOR_ROLE   CAPTOR_GATEWAY   // <-- Modify to change board Role.
+#define CAPTOR_ROLE   CAPTOR_NODE   // <-- Modify to change board Role.
 
+/*
+ *  CAPTOR Parameters
+ */
+ 
 // CAPTOR PACKET CONFIG
-#define CAPTOR_DELAY_REQUESTS  4    // Seconds between requests
+#define CAPTOR_DELAY_REQUESTS  6    // Seconds between Arduino data requests
 #define CAPTOR_REQUEST_PACKETS 4    // Number of packets requested to the Arduino
 #define CAPTOR_PACKET_BYTES 25      // Size in bytes of each packet
-#define CAPTOR_PACKET_BUFFER_N 8    // Size in number of packets of the LoRa receive packet buffer
+
+// CAPTOR LoRa RECEIVE
+#define CAPTOR_RECEIVE_DELAY   2    // Seconds between Gateway second receive buffer checks
+#define CAPTOR_PACKET_BUFFER_N 16   // Size in number of packets of the LoRa receive packet buffer
+
+/* It is recommended that: 
+ * CAPTOR_REQUEST_PACKETS / CAPTOR_DELAY_REQUESTS < CAPTOR_PACKET_BUFFER_N / CAPTOR_RECEIVE_DELAY
+ * Otherwise the Receive buffer will overflow
+ */
 
 // CAPTOR I2C ADDRESSES
 #define CAPTOR_ARDUINO_ADDR 0x08    // I2C Address of the Arduino
@@ -100,7 +120,7 @@
  *  
  */
 
-// #define LOW_POWER   // <-- Comment to disable Low Power operating mode.
+//#define LOW_POWER   // <-- Comment to disable Low Power operating mode.
 
 #ifdef LOW_POWER // Low Power mode is only for CAPTOR Nodes.
 #if CAPTOR_ROLE == CAPTOR_GATEWAY
@@ -115,15 +135,34 @@
 #define DEBUG_MODE  // <-- Comment to disable Debug reporting mode.
 
 #ifdef DEBUG_MODE
+#define DEBUG_SERIAL(x) Serial.print(x);
 #define DEBUG_SERIAL_LN(x) Serial.println(x);
 #else
+#define DEBUG_SERIAL(x) (void) 0;
 #define DEBUG_SERIAL_LN(x) (void) 0;
 #endif
 
 /*
+ *  LoRa RF parameters
+ */
+
+#define LORA_TX_POWER         17    // LoRa library default value: 17 dBm
+#define LORA_BANDWIDTH        125E3 // SX1276 default value: 125 kHz
+#define LORA_SPREADING_FACTOR 7     // SX1276 default value: sf=7 [6..12], SF = 2^sf
+#define LORA_CODING_RATE      5     // SX1276 default value: d=5 [5..8], CR = 4/d
+
+/*
+ *  LoRa Packet parameters
+ */
+
+#define LORA_PREAMBLE_LENGTH  8     // SX1276 default value: 8 [2..65535]
+//#define LORA_CRC_ENABLED          // SX1276 default: disabled                                       
+
+/*
  *  BOARD MANAGER
  * 
- *  - Add the Espressif ESP32 package url https://raw.githubusercontent.com/espressif/arduino-esp32/gh-pages/package_esp32_index.json to the Additional Boards Manager URLs (File > Preferences)
+ *  - Add the Espressif ESP32 package url https://raw.githubusercontent.com/espressif/arduino-esp32/gh-pages/package_esp32_index.json 
+ *    to the Additional Boards Manager URLs (File > Preferences)
  *  - Install esp32 by Espressif Systems. Find it on Boards Manager: http://boardsmanager#esp32
  * 
  *  LIBRARIES
@@ -177,7 +216,7 @@ void I2C_send_to(int, String);
 
 /* CAPTOR */
 
-void CAPTOR_task();
+void CAPTOR_loop();
 void CAPTOR_I2C_request_and_LoRa_send(int, int, int);
 void CAPTOR_check_recv_LoRa_and_I2C_send_to_RPi(int);
 

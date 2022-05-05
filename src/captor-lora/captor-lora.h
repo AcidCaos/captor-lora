@@ -91,16 +91,17 @@
  */
  
 // CAPTOR PACKET CONFIG
-#define CAPTOR_DELAY_REQUESTS  6    // Seconds between Arduino data requests
-#define CAPTOR_REQUEST_PACKETS 4    // Number of packets requested to the Arduino
+#define CAPTOR_DELAY_REQUESTS  4    // Seconds between Arduino data requests
+#define CAPTOR_REQUEST_PACKETS 1    // Number of packets requested to the Arduino
 #define CAPTOR_PACKET_BYTES 25      // Size in bytes of each packet
 
 // CAPTOR LoRa RECEIVE
-#define CAPTOR_RECEIVE_DELAY   2    // Seconds between Gateway second receive buffer checks
-#define CAPTOR_PACKET_BUFFER_N 16   // Size in number of packets of the LoRa receive packet buffer
+#define CAPTOR_RECEIVE_DELAY   1    // Seconds between Gateway second receive buffer checks
+#define CAPTOR_PACKET_BUFFER_N 8    // Size in number of packets of the LoRa receive packet buffer
 
 /* It is recommended that: 
- * CAPTOR_REQUEST_PACKETS / CAPTOR_DELAY_REQUESTS < CAPTOR_PACKET_BUFFER_N / CAPTOR_RECEIVE_DELAY
+ * N * CAPTOR_REQUEST_PACKETS / CAPTOR_DELAY_REQUESTS < CAPTOR_PACKET_BUFFER_N / CAPTOR_RECEIVE_DELAY
+ *      where N is the number of Nodes that the Gateway has.
  * Otherwise the Receive buffer will overflow
  */
 
@@ -146,16 +147,26 @@
  *  LoRa RF parameters
  */
 
-#define LORA_TX_POWER         17    // LoRa library default value: 17 dBm
-#define LORA_BANDWIDTH        125E3 // SX1276 default value: 125 kHz
-#define LORA_SPREADING_FACTOR 7     // SX1276 default value: sf=7 [6..12], SF = 2^sf
-#define LORA_CODING_RATE      5     // SX1276 default value: d=5 [5..8], CR = 4/d
+// Default values
+//#define LORA_TX_POWER         17
+//#define LORA_BANDWIDTH        125E3
+//#define LORA_SPREADING_FACTOR 7
+//#define LORA_CODING_RATE      5
+
+// Output Power. LoRa library default value: 17 dBm [2..20]
+#define LORA_TX_POWER         20
+// Bandwidth. SX1276 default value: 125 kHz [7.8E3, 10.4E3, 15.6E3, 20.8E3, 31.25E3, 41.7E3, 62.5E3, 125E3, 250E3, 500E3]
+#define LORA_BANDWIDTH        41.7E3
+// Spreading Factor. SX1276 default value: sf=7 [6..12], SF = 2^sf
+#define LORA_SPREADING_FACTOR 10
+// Coding Rate. SX1276 default value: d=5 [5..8], CR = 4/d
+#define LORA_CODING_RATE      8
 
 /*
  *  LoRa Packet parameters
  */
 
-#define LORA_PREAMBLE_LENGTH  8     // SX1276 default value: 8 [2..65535]
+#define LORA_PREAMBLE_LENGTH  14    // SX1276 default value: 8 [2..65535]
 //#define LORA_CRC_ENABLED          // SX1276 default: disabled                                       
 
 /*

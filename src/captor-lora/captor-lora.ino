@@ -60,7 +60,11 @@ void setup_serial() {
 void setup_IO_pins() {
   // Set IO Pins
   DEBUG_SERIAL_LN("SETUP: Set IO Pins");
+  
   pinMode(OLED_RST, OUTPUT); // Display Reset
+  
+  pinMode(LED, OUTPUT); // Green LED
+  digitalWrite(LED, LOW);
 }
 
 void setup_reset_init_display() {
@@ -99,7 +103,7 @@ void setup_LoRa() {
   delay(1500);
 
   // LoRa Radio parameters config
-  LoRa.setTxPower(LORA_TX_POWER);                 // Output Power = 17 dBm 
+  LoRa.setTxPower(LORA_TX_POWER);                 // Output Power = 17 dBm
                                                   // * LoRa library default value: 17 dBm
   LoRa.setSignalBandwidth(LORA_BANDWIDTH);        // Bandwidth = 125 kHz
                                                   // * SX1276 default value: 125 kHz
@@ -107,6 +111,8 @@ void setup_LoRa() {
                                                   // * SX1276 default value: sf=7 SF = 128
   LoRa.setCodingRate4(LORA_CODING_RATE);          // Coding Rate = 4/d = 4/5
                                                   // * SX1276 default value: d=5, CR = 4/5
+  //LoRa.setGain(0);                              // LNA Gain (1..6) / AGC (0)
+                                                  // * default: 0 (AGC used, LNA gain not used)
   // LoRa Packet parameters config
   LoRa.setPreambleLength(LORA_PREAMBLE_LENGTH);   // Preamble Length between 2 and 65535
                                                   // * SX1276 default value: 8
@@ -230,7 +236,7 @@ void display_body() {
   Last_packet.frequencyError = LoRa.packetFrequencyError();
   
   display.drawString(0, 13, "last: " + Last_packet.message);
-  display.drawString(0, 24, "size: " + String(Last_packet.size) + " bytes");
+  display.drawString(0, 24, "size: " + String(Last_packet.size) + " By.");
   display.drawString(0, 35, "rssi: " + String(Last_packet.rssi) + " dBm");
   display.drawString(0, 46, "snr: " + String(Last_packet.snr) + " dB");
   
@@ -257,8 +263,8 @@ void push (String message) {
   int i = 0;
   for (i = 0; i < CAPTOR_PACKET_BUFFER_N; ++i) {
     if (not LoRa_buffer.used[i]) {
-      LoRa_buffer.used[i] = 1;
       strcpy(LoRa_buffer.packets[i], (char*) message.c_str());
+      LoRa_buffer.used[i] = 1;
       LoRa_buffer.hint_empty = 0;
       return;
     }
@@ -272,9 +278,10 @@ String pop () {
   int i = 0;
   for (i = 0; i < CAPTOR_PACKET_BUFFER_N; ++i) {
     if (LoRa_buffer.used[i]) {
+      String content = String((char *)LoRa_buffer.packets[i]);
       LoRa_buffer.used[i] = 0;
       LoRa_buffer.hint_full = 0;
-      return String((char *)LoRa_buffer.packets[i]);
+      return content;
     }
   }
   // Noting to pop
@@ -291,16 +298,6 @@ void LoRa_receive_handler (int packet_size) {
   
   for (int i = 0; i < packet_size; i++) {
     message += (char)LoRa.read();
-  }
-  
-  // Check CRC
-  byte CRC = 0;
-  for (byte i=0; i<21; i++) CRC = CRC + (char) message[i];
-  if (message[21] != CRC) { // Invalid packet
-    #ifdef DEBUG_MODE
-    Last_packet.err ++;
-    #endif
-    return;
   }
   
   // It's also not a good idea to send **now** the message to the 
@@ -412,14 +409,27 @@ void CAPTOR_I2C_request_and_LoRa_send(int slave, int num_packets, int bytes) {
  */
 
 void CAPTOR_check_recv_LoRa_and_I2C_send_to_RPi (int rpi_address) {
+  
   String message = pop();
-  while (message != "") {
-    DEBUG_SERIAL_LN("GATEWAY [LoRa] RECEIVE (" + String(message.length()) + " bytes): <" + message + ">");
 
+  while (message != "") {
+
+    // Check CRC
+    byte CRC = 0;
+    for (byte i=0; i<21; i++) CRC = CRC + (char) message[i];
+    bool CRC_OK = (message[21] == CRC);
+    
+    // Invalid packet
+    #ifdef DEBUG_MODE
+    if (not CRC_OK) Last_packet.err ++;
+    #endif
+    
+    DEBUG_SERIAL_LN("GATEWAY [LoRa] RECEIVE (" + String(message.length()) + " bytes): <" + message + ">" + (CRC_OK ? " CRC OK." : " /!\\ INVALID CRC "));
+    
     // To avoid a long loop, we let the RT-OS do its housekeeping and then it
     // returns here. Otherwise, we may have problems with the Interrupt Watchdog
     // <https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-reference/system/wdts.html#interrupt-watchdog>
-    yield();
+    // yield();
 
     // The TTGO LoRa Gateway forwards a packet (through I2C) to the Raspberry.
     I2C_send_to(rpi_address, message);

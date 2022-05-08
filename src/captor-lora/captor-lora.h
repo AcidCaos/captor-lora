@@ -84,14 +84,14 @@
 #define CAPTOR_NODE     0
 #define CAPTOR_GATEWAY  1
 
-#define CAPTOR_ROLE   CAPTOR_NODE   // <-- Modify to change board Role.
+#define CAPTOR_ROLE   CAPTOR_GATEWAY   // <-- Modify to change board Role.
 
 /*
  *  CAPTOR Parameters
  */
  
 // CAPTOR PACKET CONFIG
-#define CAPTOR_DELAY_REQUESTS  4    // Seconds between Arduino data requests
+#define CAPTOR_DELAY_REQUESTS  2    // Seconds between Arduino data requests
 #define CAPTOR_REQUEST_PACKETS 1    // Number of packets requested to the Arduino
 #define CAPTOR_PACKET_BYTES 25      // Size in bytes of each packet
 
@@ -154,11 +154,11 @@
 //#define LORA_CODING_RATE      5
 
 // Output Power. LoRa library default value: 17 dBm [2..20]
-#define LORA_TX_POWER         20
+#define LORA_TX_POWER         17
 // Bandwidth. SX1276 default value: 125 kHz [7.8E3, 10.4E3, 15.6E3, 20.8E3, 31.25E3, 41.7E3, 62.5E3, 125E3, 250E3, 500E3]
 #define LORA_BANDWIDTH        41.7E3
 // Spreading Factor. SX1276 default value: sf=7 [6..12], SF = 2^sf
-#define LORA_SPREADING_FACTOR 10
+#define LORA_SPREADING_FACTOR 12
 // Coding Rate. SX1276 default value: d=5 [5..8], CR = 4/d
 #define LORA_CODING_RATE      8
 
@@ -166,7 +166,7 @@
  *  LoRa Packet parameters
  */
 
-#define LORA_PREAMBLE_LENGTH  14    // SX1276 default value: 8 [2..65535]
+#define LORA_PREAMBLE_LENGTH  10    // SX1276 default value: 8 [2..65535]
 //#define LORA_CRC_ENABLED          // SX1276 default: disabled                                       
 
 /*
@@ -227,6 +227,7 @@ void I2C_send_to(int, String);
 
 /* CAPTOR */
 
+void CAPTOR_task();
 void CAPTOR_loop();
 void CAPTOR_I2C_request_and_LoRa_send(int, int, int);
 void CAPTOR_check_recv_LoRa_and_I2C_send_to_RPi(int);

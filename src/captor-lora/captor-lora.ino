@@ -366,7 +366,7 @@ String I2C_request_from(int slave, int bytes) {
  * CAPTOR
  */
 
-void CAPTOR_loop () {
+void CAPTOR_task () {
   #if CAPTOR_ROLE == CAPTOR_NODE
   CAPTOR_I2C_request_and_LoRa_send(CAPTOR_ARDUINO_ADDR, CAPTOR_REQUEST_PACKETS, CAPTOR_PACKET_BYTES);
   #endif
@@ -381,6 +381,11 @@ void CAPTOR_loop () {
   display_body();
   display_display();
   #endif
+}
+
+void CAPTOR_loop () {
+
+  CAPTOR_task();
 
   #if CAPTOR_ROLE == CAPTOR_NODE
   delay(CAPTOR_DELAY_REQUESTS * 1000); // milliseconds

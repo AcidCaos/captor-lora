@@ -12,7 +12,7 @@ Integrating LoRa to CAPTOR nodes
 - Download and install [Arduino IDE](https://www.arduino.cc/en/software) and launch it.
 - Go to `File > Preferences` and add the Espressif ESP32 package url `https://raw.githubusercontent.com/espressif/arduino-esp32/gh-pages/package_esp32_index.json` to the Additional Boards Manager URLs.
   - Note: For compatibility with I2C slave mode, Espressif package index (`https://dl.espressif.com/dl/package_esp32_index.json`) should not be used, since it only contains old versions (up to 1.6.1). I2C slave support [was added](https://github.com/espressif/arduino-esp32/pull/5746) on version [2.0.1](https://github.com/espressif/arduino-esp32/releases/tag/2.0.1).
-- Go to `Tools > Board > Boards Manager`, search for `esp32` and install the one by [Espressif Systems](https://github.com/espressif/arduino-esp32#readme), version 2.0.1 or higher.
+- Go to `Tools > Board > Boards Manager`, search for `esp32` and install the one by [Espressif Systems](https://github.com/espressif/arduino-esp32#readme), version 2.0.1 or 2.0.2. Version 2.0.3 breaks function setup_IO_pins() Display Reset.
 - Go to `Tools > Board` and under the new manager `ESP32 Arduino`, select the `TTGO LoRa32-OLED` board.
 - Go to `Tools > Board Revision: "TTGO LoRa32 V1 (No TFCard)"` and select the `TTGO LoRa32 V2.1 (1.6.1)` board revision.
 

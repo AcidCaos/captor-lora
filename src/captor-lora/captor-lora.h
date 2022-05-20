@@ -174,7 +174,8 @@
  * 
  *  - Add the Espressif ESP32 package url https://raw.githubusercontent.com/espressif/arduino-esp32/gh-pages/package_esp32_index.json 
  *    to the Additional Boards Manager URLs (File > Preferences)
- *  - Install esp32 by Espressif Systems. Find it on Boards Manager: http://boardsmanager#esp32
+ *  - Install esp32 (version 2.0.2) by Espressif Systems. Find it on Boards Manager: http://boardsmanager#esp32
+ *    Version 2.0.3 breaks function setup_IO_pins() Display Reset.
  * 
  *  LIBRARIES
  * 
